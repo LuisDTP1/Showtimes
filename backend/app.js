@@ -37,7 +37,7 @@ app.use('/admin', adminRoutes);
 
 // Ruta de salud
 app.get('/', (req, res) => {
-  res.json({ message: 'Movie Review API - esqueleto de endpoints' });
+  res.json({ message: 'Showtimes - endpoints' });
 });
 
 // Manejo de rutas no encontradas
