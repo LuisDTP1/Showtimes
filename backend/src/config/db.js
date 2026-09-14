@@ -19,7 +19,7 @@ pool
     console.log('✅ MySQL conectado');
     conn.release(); // devolver al pool
   })
-  .catch((err) => {xa
+  .catch((err) => {
     console.error('❌ Error MySQL:', err.message);
     process.exit(1); // detener app si no hay DB
   });
