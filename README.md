@@ -9,6 +9,7 @@ API REST desarrollada para la gestión de una cartelera de cine, películas, gé
 * **Nodemon** — Reinicio automático del servidor en entorno de desarrollo.
 
 ## 📁 Estructura del Proyecto
+```text
 backend/
 ├── src/
 │   ├── config/       # Configuración de la base de datos (Pool MySQL)
