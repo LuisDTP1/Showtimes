@@ -2,6 +2,7 @@
 const PeliculaModel = require('../models/pelicula.model');
 const ResenaModel = require('../models/resena.model');
 const tmdbService = require('../services/tmdb.service');
+const pool = require('../config/db');
 
 const getAll = async (req, res) => {
   try {
@@ -97,7 +98,6 @@ const createResena = async (req, res) => {
     const pelicula = await PeliculaModel.getById(peliculaId);
     if (!pelicula) return res.status(404).json({ ok: false, msg: 'Película no encontrada' });
 
-    // Capturamos todas las posibles variantes de nombres que envíes desde Thunder Client
     const { 
       usuarioId, usuario_id, 
       criticoId, critico_id, 
@@ -122,7 +122,7 @@ const createResena = async (req, res) => {
       usuarioId: finalUsuarioId || null,
       criticoId: finalCriticoId || null,
       calificacion: finalCalificacion,
-      comentario: comentario || null // <--- Aquí pasamos explícitamente el texto del comentario
+      comentario: comentario || null
     });
 
     res.status(201).json({ ok: true, data });
@@ -134,4 +134,45 @@ const createResena = async (req, res) => {
   }
 };
 
-module.exports = { getAll, create, getById, update, remove, getResenas, createResena };
+const agregarGeneroAPelicula = async (req, res) => {
+  try {
+    const peliculaId = req.params.id;
+    const { generoId, genero_id, nombre } = req.body;
+    const finalGeneroId = generoId !== undefined ? generoId : genero_id;
+
+    if (!finalGeneroId) {
+      return res.status(400).json({ ok: false, msg: 'El generoId es obligatorio' });
+    }
+
+    // 1. Verificamos si el género ya existe localmente; si no, lo guardamos automáticamente
+    const [generoExistente] = await pool.query('SELECT * FROM generos WHERE id = ?', [finalGeneroId]);
+    if (generoExistente.length === 0) {
+      const nombreGenero = nombre || `Género ${finalGeneroId}`;
+      await pool.query('INSERT INTO generos (id, nombre) VALUES (?, ?)', [finalGeneroId, nombreGenero]);
+    }
+
+    // 2. Asociamos la película con el género en la tabla intermedia
+    await pool.query(
+      'INSERT INTO pelicula_genero (pelicula_id, genero_id) VALUES (?, ?)',
+      [peliculaId, finalGeneroId]
+    );
+
+    res.status(201).json({ ok: true, msg: 'Género asociado a la película correctamente', data: { peliculaId, generoId: finalGeneroId } });
+  } catch (err) {
+    if (err.errno === 1062) {
+      return res.status(409).json({ ok: false, msg: 'Esta película ya tiene asociado este género' });
+    }
+    res.status(500).json({ ok: false, msg: err.message });
+  }
+};
+
+module.exports = { 
+  getAll, 
+  create, 
+  getById, 
+  update, 
+  remove, 
+  getResenas, 
+  createResena, 
+  agregarGeneroAPelicula 
+};

@@ -9,8 +9,9 @@ router.get('/:id', ctrl.getById);
 router.put('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);
 
-// Rutas de reseñas usando el controlador unificado
+// Rutas secundarias integradas (Reseñas y Géneros)
 router.get('/:id/resenas', ctrl.getResenas);
 router.post('/:id/resenas', ctrl.createResena);
+router.post('/:id/generos', ctrl.agregarGeneroAPelicula);
 
 module.exports = router;
