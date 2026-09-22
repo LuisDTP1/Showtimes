@@ -9,13 +9,13 @@ API REST desarrollada para la gestión de una cartelera de cine, películas, gé
 * **Nodemon** — Reinicio automático del servidor en entorno de desarrollo.
 
 ## 📁 Estructura del Proyecto
-```text
 backend/
 ├── src/
 │   ├── config/       # Configuración de la base de datos (Pool MySQL)
 │   ├── controllers/  # Lógica de negocio de las peticiones
 │   ├── models/       # Consultas SQL seguras (Prepared Statements)
 │   ├── routes/       # Definición de rutas y endpoints
+│   ├── services/     # Servicios externos (ej. consumo de la API de TMDB)
 │   └── app.js        # Configuración principal de Express y middlewares
 ├── .env              # Variables de entorno (Credenciales de BD)
 ├── .gitignore        # Archivos ignorados por Git

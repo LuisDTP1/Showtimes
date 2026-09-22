@@ -27,6 +27,7 @@ Backend construido en Node.js + Express + MySQL. A continuación se listan los 2
 | DELETE | /api/peliculas/:id | Eliminar película |
 | GET | /api/peliculas/:id/resenas | Reseñas de esa película |
 | POST | /api/peliculas/:id/resenas | Crear reseña para esa película |
+| POST | /api/peliculas/:id/generos | Asociar un género a una película (lo crea automáticamente si no existe) |
 
 ## 4. Géneros (`/api/generos`)
 | Método | Endpoint | Descripción |
