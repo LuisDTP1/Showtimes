@@ -93,18 +93,42 @@ const getResenas = async (req, res) => {
 
 const createResena = async (req, res) => {
   try {
-    const pelicula = await PeliculaModel.getById(req.params.id);
+    const peliculaId = req.params.id;
+    const pelicula = await PeliculaModel.getById(peliculaId);
     if (!pelicula) return res.status(404).json({ ok: false, msg: 'Película no encontrada' });
 
-    const { usuarioId, puntuacion, comentario } = req.body;
-    if (!usuarioId || puntuacion === undefined) {
-      return res.status(400).json({ ok: false, msg: 'usuarioId y puntuacion son requeridos' });
+    // Capturamos todas las posibles variantes de nombres que envíes desde Thunder Client
+    const { 
+      usuarioId, usuario_id, 
+      criticoId, critico_id, 
+      calificacion, puntuacion, 
+      comentario 
+    } = req.body;
+
+    const finalUsuarioId = usuarioId !== undefined ? usuarioId : usuario_id;
+    const finalCriticoId = criticoId !== undefined ? criticoId : critico_id;
+    const finalCalificacion = calificacion !== undefined ? calificacion : puntuacion;
+
+    if (!finalUsuarioId && !finalCriticoId) {
+      return res.status(400).json({ ok: false, msg: 'Debe indicar usuarioId o criticoId' });
     }
-    const data = await ResenaModel.create({ peliculaId: req.params.id, usuarioId, puntuacion, comentario });
+
+    if (finalCalificacion === undefined) {
+      return res.status(400).json({ ok: false, msg: 'La calificación es obligatoria' });
+    }
+
+    const data = await ResenaModel.create({
+      peliculaId,
+      usuarioId: finalUsuarioId || null,
+      criticoId: finalCriticoId || null,
+      calificacion: finalCalificacion,
+      comentario: comentario || null // <--- Aquí pasamos explícitamente el texto del comentario
+    });
+
     res.status(201).json({ ok: true, data });
   } catch (err) {
     if (err.errno === 1062) {
-      return res.status(409).json({ ok: false, msg: 'Ya existe una reseña de este usuario para esta película' });
+      return res.status(409).json({ ok: false, msg: 'Ya existe una reseña de este usuario o crítico para esta película' });
     }
     res.status(500).json({ ok: false, msg: err.message });
   }

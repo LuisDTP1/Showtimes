@@ -1,14 +1,16 @@
+// src/routes/peliculas.routes.js
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/peliculas.controller');
-const resenaCtrl = require('../controllers/resena.controller'); 
 
 router.get('/', ctrl.getAll);
 router.post('/', ctrl.create);
 router.get('/:id', ctrl.getById);
 router.put('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);
+
+// Rutas de reseñas usando el controlador unificado
 router.get('/:id/resenas', ctrl.getResenas);
-router.post('/:id/resenas', resenaCtrl.crear);
+router.post('/:id/resenas', ctrl.createResena);
 
 module.exports = router;

@@ -1,3 +1,4 @@
+// src/controllers/resenas.controller.js
 const ResenaModel = require('../models/resena.model');
 const ComentarioModel = require('../models/comentario.model');
 
