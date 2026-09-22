@@ -21,8 +21,10 @@ CREATE TABLE IF NOT EXISTS criticos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nombre VARCHAR(100) NOT NULL,
   email VARCHAR(150) NOT NULL UNIQUE,
-  medio VARCHAR(100),
-  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  password VARCHAR(255) NOT NULL,
+  medio_publicacion VARCHAR(100),
+  biografia TEXT,
+  fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ==========================
@@ -38,6 +40,7 @@ CREATE TABLE IF NOT EXISTS generos (
 -- ==========================
 CREATE TABLE IF NOT EXISTS peliculas (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  tmdb_id INT,
   titulo VARCHAR(200) NOT NULL,
   sinopsis TEXT,
   anio INT,
