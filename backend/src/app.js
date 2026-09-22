@@ -10,7 +10,10 @@ const generosRoutes = require('./routes/generos.routes');
 const resenasRoutes = require('./routes/resenas.routes');
 const comentariosRoutes = require('./routes/comentarios.routes');
 const favoritosRoutes = require('./routes/favoritos.routes');
+const tmdbRoutes = require('./routes/tmdb.routes');
+const criticosRoutes = require('./routes/critico.routes'); 
 
+app.use('/api/tmdb', tmdbRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/peliculas', peliculasRoutes);
@@ -18,6 +21,7 @@ app.use('/api/generos', generosRoutes);
 app.use('/api/resenas', resenasRoutes);
 app.use('/api/comentarios', comentariosRoutes);
 app.use('/api/favoritos', favoritosRoutes);
+app.use('/api/criticos', criticosRoutes); 
 
 app.get('/', (req, res) => {
   res.json({ message: 'Showtimes API — MySQL real' });

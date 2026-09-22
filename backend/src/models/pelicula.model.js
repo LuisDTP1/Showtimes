@@ -1,6 +1,6 @@
+// src/models/pelicula.model.js
 const pool = require('../config/db');
 
-// Catálogo con filtros opcionales: genero, en_cartelera, busqueda
 const getAll = async ({ genero, en_cartelera, busqueda } = {}) => {
   let sql = 'SELECT DISTINCT p.* FROM peliculas p';
   const params = [];
@@ -41,11 +41,29 @@ const getById = async (id) => {
   return { ...pelicula, generos };
 };
 
-const create = async ({ titulo, sinopsis, anio, duracionMinutos, trailerUrl, posterUrl, generosIds }) => {
+const create = async (body) => {
+  const {
+    tmdbId, tmdb_id,
+    titulo,
+    sinopsis,
+    anio,
+    duracionMinutos, duracion_minutos,
+    trailerUrl, trailer_url,
+    posterUrl, poster_url,
+    enCartelera, en_cartelera,
+    generosIds
+  } = body;
+
+  const idTmdb = tmdbId !== undefined ? tmdbId : tmdb_id;
+  const duracion = duracionMinutos !== undefined ? duracionMinutos : duracion_minutos;
+  const trailer = trailerUrl !== undefined ? trailerUrl : trailer_url;
+  const poster = posterUrl !== undefined ? posterUrl : poster_url;
+  const cartelera = enCartelera !== undefined ? enCartelera : (en_cartelera !== undefined ? en_cartelera : 0);
+
   const [result] = await pool.query(
-    `INSERT INTO peliculas (titulo, sinopsis, anio, duracion_minutos, trailer_url, poster_url)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [titulo, sinopsis || null, anio || null, duracionMinutos || null, trailerUrl || null, posterUrl || null]
+    `INSERT INTO peliculas (tmdb_id, titulo, sinopsis, anio, duracion_minutos, trailer_url, poster_url, en_cartelera)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [idTmdb || null, titulo, sinopsis || null, anio || null, duracion || null, trailer || null, poster || null, cartelera]
   );
   const peliculaId = result.insertId;
 
@@ -56,10 +74,28 @@ const create = async ({ titulo, sinopsis, anio, duracionMinutos, trailerUrl, pos
   return getById(peliculaId);
 };
 
-const update = async (id, { titulo, sinopsis, anio, duracionMinutos, trailerUrl, posterUrl, enCartelera }) => {
+const update = async (id, body) => {
+  const {
+    tmdbId, tmdb_id,
+    titulo,
+    sinopsis,
+    anio,
+    duracionMinutos, duracion_minutos,
+    trailerUrl, trailer_url,
+    posterUrl, poster_url,
+    enCartelera, en_cartelera
+  } = body;
+
+  const idTmdb = tmdbId !== undefined ? tmdbId : tmdb_id;
+  const duracion = duracionMinutos !== undefined ? duracionMinutos : duracion_minutos;
+  const trailer = trailerUrl !== undefined ? trailerUrl : trailer_url;
+  const poster = posterUrl !== undefined ? posterUrl : poster_url;
+  const cartelera = enCartelera !== undefined ? enCartelera : en_cartelera;
+
   const [result] = await pool.query(
     `UPDATE peliculas
-     SET titulo           = COALESCE(?, titulo),
+     SET tmdb_id          = COALESCE(?, tmdb_id),
+         titulo           = COALESCE(?, titulo),
          sinopsis         = COALESCE(?, sinopsis),
          anio             = COALESCE(?, anio),
          duracion_minutos = COALESCE(?, duracion_minutos),
@@ -67,7 +103,7 @@ const update = async (id, { titulo, sinopsis, anio, duracionMinutos, trailerUrl,
          poster_url       = COALESCE(?, poster_url),
          en_cartelera     = COALESCE(?, en_cartelera)
      WHERE id = ?`,
-    [titulo, sinopsis, anio, duracionMinutos, trailerUrl, posterUrl, enCartelera, id]
+    [idTmdb, titulo, sinopsis, anio, duracion, trailer, poster, cartelera, id]
   );
   return result.affectedRows;
 };

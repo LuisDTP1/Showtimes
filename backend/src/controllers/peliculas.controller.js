@@ -1,5 +1,7 @@
+// src/controllers/peliculas.controller.js
 const PeliculaModel = require('../models/pelicula.model');
 const ResenaModel = require('../models/resena.model');
+const tmdbService = require('../services/tmdb.service');
 
 const getAll = async (req, res) => {
   try {
@@ -12,9 +14,35 @@ const getAll = async (req, res) => {
 
 const create = async (req, res) => {
   try {
-    const { titulo } = req.body;
-    if (!titulo) return res.status(400).json({ ok: false, msg: 'titulo es requerido' });
-    const data = await PeliculaModel.create(req.body);
+    let peliculaData = { ...req.body };
+    const tmdbId = peliculaData.tmdb_id || peliculaData.tmdbId;
+
+    if (tmdbId) {
+      try {
+        const detalleTmdb = await tmdbService.getDetalle(tmdbId);
+        const videosTmdb = await tmdbService.getVideos(tmdbId);
+        
+        const trailerObj = videosTmdb.results?.find(
+          v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
+        );
+        const trailerUrl = trailerObj ? `https://www.youtube.com/watch?v=${trailerObj.key}` : null;
+
+        peliculaData.titulo = peliculaData.titulo || detalleTmdb.title;
+        peliculaData.sinopsis = peliculaData.sinopsis || detalleTmdb.overview;
+        peliculaData.anio = peliculaData.anio || (detalleTmdb.release_date ? new Date(detalleTmdb.release_date).getFullYear() : null);
+        peliculaData.duracion_minutos = peliculaData.duracion_minutos || peliculaData.duracionMinutos || detalleTmdb.runtime;
+        peliculaData.poster_url = peliculaData.poster_url || peliculaData.posterUrl || (detalleTmdb.poster_path ? `https://image.tmdb.org/t/p/w500${detalleTmdb.poster_path}` : null);
+        peliculaData.trailer_url = peliculaData.trailer_url || peliculaData.trailerUrl || trailerUrl;
+      } catch (tmdbErr) {
+        console.warn('No se pudo obtener la info de TMDB automáticamente:', tmdbErr.message);
+      }
+    }
+
+    if (!peliculaData.titulo) {
+      return res.status(400).json({ ok: false, msg: 'El título es requerido o el tmdb_id no es válido' });
+    }
+
+    const data = await PeliculaModel.create(peliculaData);
     res.status(201).json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, msg: err.message });
@@ -75,7 +103,6 @@ const createResena = async (req, res) => {
     const data = await ResenaModel.create({ peliculaId: req.params.id, usuarioId, puntuacion, comentario });
     res.status(201).json({ ok: true, data });
   } catch (err) {
-    // Error 1062 = violación del UNIQUE(usuario_id, pelicula_id): ya existe una reseña de este usuario
     if (err.errno === 1062) {
       return res.status(409).json({ ok: false, msg: 'Ya existe una reseña de este usuario para esta película' });
     }
