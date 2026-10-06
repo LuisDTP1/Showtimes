@@ -1,144 +1,106 @@
 # Showtimes — Endpoints de la API
 
-Backend construido en Node.js + Express. A continuación se listan todos los endpoints definidos para la aplicación de reseñas de películas.
+Node.js + Express + MySQL. Respuestas siempre en JSON: `{ ok: true, data }` o `{ ok: false, error }`.
 
-## Autenticación (`/auth`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | /auth/register | Registro de usuario |
-| POST | /auth/login | Inicio de sesión |
-| POST | /auth/logout | Cerrar sesión |
-| POST | /auth/refresh | Renovar token |
-| POST | /auth/forgot-password | Recuperar contraseña |
-| POST | /auth/reset-password | Resetear contraseña |
+**Autenticación (JWT + bcrypt):** `register` y `login` devuelven `{ ok, token, usuario }`. El token se envía en cada petición protegida:
+`Authorization: Bearer <token>`
 
-## Usuarios (`/users`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /users/:id | Perfil de usuario |
-| PUT | /users/:id | Actualizar perfil |
-| DELETE | /users/:id | Eliminar cuenta |
-| GET | /users/:id/reviews | Reseñas hechas por el usuario |
-| GET | /users/:id/watchlist | Lista "para ver" del usuario |
-| GET | /users/:id/favorites | Favoritos del usuario |
-| GET | /users/:id/ratings | Calificaciones dadas por el usuario |
+- Sin token → **401** `Token requerido`
+- Token alterado o expirado → **403** `Token inválido o expirado` (hay que volver a hacer login)
+- Sin permiso (rol/autoría) → **403**
 
-## Películas (`/movies`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /movies | Listado de películas |
-| POST | /movies | Crear película (admin) |
-| GET | /movies/search | Búsqueda por título |
-| GET | /movies/trending | Tendencias |
-| GET | /movies/upcoming | Próximos estrenos |
-| GET | /movies/now-playing | En cartelera |
-| GET | /movies/top-rated | Mejor calificadas |
-| GET | /movies/:id | Detalle de una película |
-| PUT | /movies/:id | Editar película (admin) |
-| DELETE | /movies/:id | Eliminar película (admin) |
-| GET | /movies/:id/similar | Películas similares |
-| GET | /movies/:id/cast | Reparto |
-| GET | /movies/:id/crew | Equipo técnico |
-| GET | /movies/:id/trailers | Tráilers/videos |
-| GET | /movies/:id/images | Pósters y fotos |
-| GET | /movies/:id/scores | Puntaje de críticos y audiencia |
-| GET | /movies/:id/reviews | Reseñas de una película |
-| POST | /movies/:id/reviews | Crear reseña para una película |
-| POST | /movies/:id/rate | Calificar película |
-| GET | /movies/:id/rating-distribution | Distribución de calificaciones |
-| GET | /movies/:id/tomatometer | Score de críticos |
-| GET | /movies/:id/audience-score | Score de audiencia |
+El middleware `verificarToken` deja el payload en `req.usuario` = `{ id, email, tipo, rol }` (la contraseña nunca va en el token).
 
-## Series (`/tv-shows`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /tv-shows | Listado de series |
-| GET | /tv-shows/:id | Detalle de una serie |
-| GET | /tv-shows/:id/seasons | Temporadas |
-| GET | /tv-shows/:id/seasons/:season/episodes | Episodios de una temporada |
+**Acceso:** 🌐 público · 🔑 cualquier cuenta con sesión · 👤 solo el dueño de la cuenta (o admin) · ✍️ solo el autor (o admin) · 🛡️ solo admin
 
-## Reseñas (`/reviews`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /reviews/:id | Detalle de una reseña |
-| PUT | /reviews/:id | Editar reseña |
-| DELETE | /reviews/:id | Eliminar reseña |
-| GET | /reviews/:id/comments | Comentarios de una reseña |
-| POST | /reviews/:id/comments | Comentar en una reseña |
-| POST | /reviews/:id/like | Dar like a una reseña |
-| POST | /reviews/:id/report | Reportar una reseña |
+## Autenticación (`/api/auth`)
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| POST | /api/auth/register | 🌐 | Registra un usuario `{nombre, email, password}` → `201 {token, usuario}` (el rol siempre es `usuario`) |
+| POST | /api/auth/login | 🌐 | `{email, password, tipo?}` (`tipo: "critico"` para críticos) → `{token, usuario}` |
+| POST | /api/auth/logout | 🌐 | Cierra sesión (el cliente descarta el token) |
+| GET | /api/auth/me | 🔑 | Datos de la sesión actual |
 
-## Críticos (`/critics`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /critics | Listado de críticos |
-| POST | /critics/apply | Solicitud para ser crítico verificado |
-| GET | /critics/:id | Perfil de crítico |
-| GET | /critics/:id/reviews | Reseñas del crítico |
+## Usuarios (`/api/usuarios`)
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| GET | /api/usuarios/:id | 👤 | Ver perfil |
+| PUT / PATCH | /api/usuarios/:id | 👤 | Editar `nombre`, `email`, `password` |
+| DELETE | /api/usuarios/:id | 👤 | Eliminar cuenta |
+| GET | /api/usuarios/:id/resenas | 🌐 | Reseñas hechas por el usuario |
+| GET | /api/usuarios/:id/favoritos | 👤 | Películas favoritas |
+| POST | /api/usuarios/:id/favoritos | 👤 | Agregar favorito `{pelicula_id}` |
+| DELETE | /api/usuarios/:id/favoritos/:pelicula_id | 👤 | Quitar favorito |
 
-## Personas (`/people`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /people | Listado de actores/directores |
-| GET | /people/:id | Perfil de una persona |
-| GET | /people/:id/filmography | Filmografía |
+## Películas (`/api/peliculas`)
+Cada película incluye los puntajes: `criticos_total / _promedio / _porcentaje` (Tomatometer) y `publico_total / _promedio / _porcentaje` (Audience Score). El porcentaje es el % de reseñas con calificación ≥ 3.
 
-## Géneros (`/genres`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /genres | Listado de géneros |
-| GET | /genres/:id/movies | Películas por género |
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| GET | /api/peliculas | 🌐 | Catálogo. Query: `genero`, `en_cartelera`, `busqueda`, `orden` (`recientes`\|`criticos`\|`publico`\|`titulo`), `pagina`, `limite` |
+| GET | /api/peliculas/cartelera | 🌐 | Solo las que están en cartelera |
+| GET | /api/peliculas/:id | 🌐 | Detalle + tráiler + géneros + puntajes |
+| POST | /api/peliculas | 🛡️ | Crear. Con `tmdb_id` se completa todo desde TMDB (título, sinopsis, póster, tráiler, géneros) |
+| PUT / PATCH | /api/peliculas/:id | 🛡️ | Editar |
+| DELETE | /api/peliculas/:id | 🛡️ | Eliminar |
+| POST | /api/peliculas/:id/generos | 🛡️ | Asociar género `{generoId, nombre?}` |
+| GET | /api/peliculas/:id/resenas | 🌐 | Reseñas (con `tipo_autor`: `usuario` / `critico`) |
+| POST | /api/peliculas/:id/resenas | 🔑 | Crear reseña `{calificacion (1-5), comentario?}`. El autor sale del token. Una por persona y película |
 
-## Listas (`/lists`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /lists | Listas públicas |
-| POST | /lists | Crear lista |
-| GET | /lists/:id | Ver lista |
-| PUT | /lists/:id | Editar lista |
-| DELETE | /lists/:id | Eliminar lista |
-| POST | /lists/:id/items | Agregar película a la lista |
+## Géneros (`/api/generos`)
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| GET | /api/generos | 🌐 | Listar géneros |
+| GET | /api/generos/:id/peliculas | 🌐 | Películas de un género |
 
-## Watchlist (`/watchlist`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | /watchlist/:movieId | Agregar película a watchlist |
-| DELETE | /watchlist/:movieId | Quitar película de watchlist |
+## Reseñas (`/api/resenas`)
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| PUT / PATCH | /api/resenas/:id | ✍️ | Editar `calificacion` y/o `comentario` |
+| DELETE | /api/resenas/:id | ✍️ | Eliminar |
+| GET | /api/resenas/:id/comentarios | 🌐 | Comentarios de la reseña |
+| POST | /api/resenas/:id/comentarios | 🔑 (solo usuarios) | Comentar `{texto}` |
 
-## Favoritos (`/favorites`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | /favorites/:movieId | Marcar película como favorita |
-| DELETE | /favorites/:movieId | Quitar película de favoritos |
+## Comentarios (`/api/comentarios`)
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| DELETE | /api/comentarios/:id | ✍️ | Eliminar comentario |
 
-## Notificaciones (`/notifications`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /notifications | Listado de notificaciones |
-| PUT | /notifications/:id/read | Marcar notificación como leída |
-| DELETE | /notifications/:id | Eliminar notificación |
+## Favoritos — atajo (`/api/favoritos`)
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| POST | /api/favoritos/:peliculaId | 🔑 (usuarios) | Agregar a favoritos de la sesión actual |
+| DELETE | /api/favoritos/:peliculaId | 🔑 (usuarios) | Quitar de favoritos |
 
-## Búsqueda (`/search`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /search | Búsqueda global (películas, personas, críticos) |
+## Críticos (`/api/criticos`)
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| POST | /api/criticos/login | 🌐 | Login de crítico → `{token, usuario}` |
+| GET | /api/criticos | 🌐 | Listar críticos |
+| GET | /api/criticos/:id | 🌐 | Ver crítico |
+| POST | /api/criticos | 🛡️ | Dar de alta un crítico |
+| PUT / PATCH | /api/criticos/:id | 👤 (el propio crítico) / 🛡️ | Editar |
+| DELETE | /api/criticos/:id | 👤 / 🛡️ | Eliminar |
 
-## Administración (`/admin`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | /admin/stats | Estadísticas generales |
-| GET | /admin/reported-reviews | Reseñas reportadas |
-| PUT | /admin/reviews/:id/moderate | Moderar reseña |
+## TMDB (`/api/tmdb`) — consulta a la API externa
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| GET | /api/tmdb/cartelera?page= | 🌐 | Películas en cines ahora |
+| GET | /api/tmdb/buscar?q=&page= | 🌐 | Buscar por título |
+| GET | /api/tmdb/:tmdbId | 🌐 | Detalle + imágenes + tráilers |
+
+## Códigos de error
+`400` datos inválidos · `401` sin token · `403` token inválido/vencido o sin permiso · `404` no existe · `409` duplicado · `429` demasiadas peticiones · `502` falla TMDB
 
 ---
-
-## Estado actual
-Todos los endpoints están **definidos y responden** (`501 Not Implemented`) mediante Express Router. La lógica de negocio y la conexión a base de datos se implementarán en una siguiente etapa.
-
 ## Cómo correr el servidor
 ```bash
 cd backend
+cp .env.example .env     # y completa los valores (JWT_SECRET larga y aleatoria)
 npm install
-npm start
+npm run dev
 ```
-Servidor disponible en `http://localhost:3000`.
+Para tener un **admin**: regístrate normalmente y luego en MySQL: `UPDATE usuarios SET rol='admin' WHERE email='tu@correo.com';` (vuelve a hacer login para obtener un token nuevo).
+
+## Probar con Postman
+Importa `Showtimes.postman_collection.json`. Orden: **Register → Login** (el script guarda el token en `{{token}}` y el id en `{{usuarioId}}`) y luego cualquier ruta protegida: la colección ya usa *Auth → Bearer Token* con `{{token}}`. Para crear películas o críticos haz login con la cuenta admin.

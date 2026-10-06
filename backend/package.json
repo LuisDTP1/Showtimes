@@ -1,15 +1,22 @@
 {
   "name": "showtimes-backend",
   "version": "1.0.0",
-  "description": "Backend de Showtimes - API para reseñas de películas (esqueleto de endpoints)",
-  "main": "app.js",
+  "description": "Backend de Showtimes — API de reseñas y cartelera de películas con MySQL real",
+  "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.12.1",
+    "mysql2": "^3.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
