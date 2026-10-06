@@ -1,6 +1,10 @@
 const express = require('express');
+
 const app = express();
 
+// Middlewares globales
+app.use(cors());
+app.use(morgan('dev'));
 app.use(express.json());
 
 const authRoutes = require('./routes/auth.routes');
@@ -11,7 +15,7 @@ const resenasRoutes = require('./routes/resenas.routes');
 const comentariosRoutes = require('./routes/comentarios.routes');
 const favoritosRoutes = require('./routes/favoritos.routes');
 const tmdbRoutes = require('./routes/tmdb.routes');
-const criticosRoutes = require('./routes/critico.routes'); 
+const criticosRoutes = require('./routes/critico.routes');
 
 app.use('/api/tmdb', tmdbRoutes);
 app.use('/api/auth', authRoutes);
@@ -21,7 +25,7 @@ app.use('/api/generos', generosRoutes);
 app.use('/api/resenas', resenasRoutes);
 app.use('/api/comentarios', comentariosRoutes);
 app.use('/api/favoritos', favoritosRoutes);
-app.use('/api/criticos', criticosRoutes); 
+app.use('/api/criticos', criticosRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Showtimes API — MySQL real' });
