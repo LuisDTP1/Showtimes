@@ -26,4 +26,14 @@ const remove = async (id) => {
   return result.affectedRows;
 };
 
-module.exports = { getByResena, create, remove };
+const getById = async (id) => {
+  const [rows] = await pool.query('SELECT * FROM comentarios WHERE id = ?', [id]);
+  return rows[0];
+};
+
+const update = async (id, texto) => {
+  const [result] = await pool.query('UPDATE comentarios SET texto = ? WHERE id = ?', [texto, id]);
+  return result.affectedRows;
+};
+
+module.exports = { getByResena, create, remove, getById, update };

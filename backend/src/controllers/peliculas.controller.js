@@ -98,37 +98,33 @@ const createResena = async (req, res) => {
     const pelicula = await PeliculaModel.getById(peliculaId);
     if (!pelicula) return res.status(404).json({ ok: false, msg: 'Película no encontrada' });
 
-    const { 
-      usuarioId, usuario_id, 
-      criticoId, critico_id, 
-      calificacion, puntuacion, 
-      comentario 
-    } = req.body;
-
-    const finalUsuarioId = usuarioId !== undefined ? usuarioId : usuario_id;
-    const finalCriticoId = criticoId !== undefined ? criticoId : critico_id;
+    const { calificacion, puntuacion, comentario } = req.body;
     const finalCalificacion = calificacion !== undefined ? calificacion : puntuacion;
-
-    if (!finalUsuarioId && !finalCriticoId) {
-      return res.status(400).json({ ok: false, msg: 'Debe indicar usuarioId o criticoId' });
-    }
 
     if (finalCalificacion === undefined) {
       return res.status(400).json({ ok: false, msg: 'La calificación es obligatoria' });
     }
 
+    const nota = Number(finalCalificacion);
+    if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
+      return res.status(400).json({ ok: false, msg: 'La calificación debe ser un número entero entre 1 y 5' });
+    }
+
+    // El autor sale del token, no del body
+    const { id, tipo } = req.usuario;
+
     const data = await ResenaModel.create({
       peliculaId,
-      usuarioId: finalUsuarioId || null,
-      criticoId: finalCriticoId || null,
-      calificacion: finalCalificacion,
+      usuarioId: tipo === 'usuario' ? id : null,
+      criticoId: tipo === 'critico' ? id : null,
+      calificacion: nota,
       comentario: comentario || null
     });
 
     res.status(201).json({ ok: true, data });
   } catch (err) {
     if (err.errno === 1062) {
-      return res.status(409).json({ ok: false, msg: 'Ya existe una reseña de este usuario o crítico para esta película' });
+      return res.status(409).json({ ok: false, msg: 'Ya existe una reseña tuya para esta película' });
     }
     res.status(500).json({ ok: false, msg: err.message });
   }

@@ -1,5 +1,6 @@
-// src/models/criticoModel.js
+// src/models/critico.model.js
 const pool = require('../config/db');
+
 
 const CriticoModel = {
   async crear({ nombre, email, password, medioPublicacion, biografia }) {

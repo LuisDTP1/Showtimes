@@ -1,4 +1,7 @@
+require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
 
 const app = express();
 
@@ -33,6 +36,16 @@ app.get('/', (req, res) => {
 
 app.use((req, res) => {
   res.status(404).json({ ok: false, msg: 'Endpoint no encontrado' });
+});
+
+// Middleware de errores global: siempre al final, con 4 parametros
+app.use((err, req, res, next) => {
+  console.error(err);
+  const status = err.status === 400 ? 400 : 500;
+  res.status(status).json({
+    ok: false,
+    msg: status === 400 ? 'JSON inválido en el cuerpo de la petición' : 'Error interno del servidor'
+  });
 });
 
 module.exports = app;

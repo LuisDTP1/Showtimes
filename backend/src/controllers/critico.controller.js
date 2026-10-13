@@ -1,7 +1,6 @@
-// src/controllers/criticoController.js
-// requiere: npm install bcrypt
-const bcrypt = require('bcrypt');
-const CriticoModel = require('../models/criticoModel');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const CriticoModel = require('../models/critico.model');
 
 const CriticoController = {
   async crear(req, res) {
@@ -22,7 +21,13 @@ const CriticoController = {
         nombre, email, password: passwordHash, medioPublicacion, biografia
       });
 
-      res.status(201).json({ id, nombre, email, medioPublicacion, biografia });
+      const token = jwt.sign(
+        { id, email, tipo: 'critico' },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN }
+      );
+
+      res.status(201).json({ id, nombre, email, medioPublicacion, biografia, token });
     } catch (error) {
       res.status(500).json({ error: 'Error al crear crítico', detalle: error.message });
     }
@@ -41,7 +46,13 @@ const CriticoController = {
       const valido = await bcrypt.compare(password, critico.password);
       if (!valido) return res.status(401).json({ error: 'Credenciales inválidas' });
 
-      res.json({ id: critico.id, nombre: critico.nombre, email: critico.email });
+      const token = jwt.sign(
+        { id: critico.id, email: critico.email, tipo: 'critico' },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN }
+      );
+
+      res.json({ id: critico.id, nombre: critico.nombre, email: critico.email, token, tipo: 'critico' });
     } catch (error) {
       res.status(500).json({ error: 'Error al iniciar sesión', detalle: error.message });
     }

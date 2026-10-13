@@ -1,9 +1,25 @@
 // src/models/resena.model.js
 const pool = require('../config/db');
 
+const getByUsuario = async (usuarioId) => {
+  const [rows] = await pool.query(
+    `SELECT r.*, p.titulo AS pelicula_titulo
+     FROM resenas r
+     INNER JOIN peliculas p ON p.id = r.pelicula_id
+     WHERE r.usuario_id = ?
+     ORDER BY r.creado_en DESC`,
+    [usuarioId]
+  );
+  return rows;
+};
+
 const getByPelicula = async (peliculaId) => {
   const [rows] = await pool.query(
-    `SELECT r.*, u.nombre AS usuario_nombre, c.nombre AS critico_nombre
+    `SELECT r.*,
+            u.nombre AS usuario_nombre,
+            c.nombre AS critico_nombre,
+            c.medio_publicacion,
+            CASE WHEN r.critico_id IS NOT NULL THEN 'critico' ELSE 'usuario' END AS tipo_autor
      FROM resenas r
      LEFT JOIN usuarios u ON u.id = r.usuario_id
      LEFT JOIN criticos c ON c.id = r.critico_id
@@ -67,13 +83,14 @@ const promedioPorPelicula = async (peliculaId) => {
   return rows[0];
 };
 
-module.exports = { 
-  getByPelicula, 
-  getById, 
-  existeResena, 
-  create, 
-  crear: create, 
-  update, 
-  remove, 
-  promedioPorPelicula 
+module.exports = {
+  getByPelicula,
+  getByUsuario,
+  getById,
+  existeResena,
+  create,
+  crear: create,
+  update,
+  remove,
+  promedioPorPelicula
 };

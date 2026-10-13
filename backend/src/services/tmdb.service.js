@@ -1,137 +1,46 @@
-// src/controllers/peliculas.controller.js
-const PeliculaModel = require('../models/pelicula.model');
-const ResenaModel = require('../models/resena.model');
-const tmdbService = require('../services/tmdb.service');
+// src/services/tmdb.service.js
+const BASE_URL = 'https://api.themoviedb.org/3';
 
-const getAll = async (req, res) => {
-  try {
-    const data = await PeliculaModel.getAll(req.query);
-    res.json({ ok: true, data });
-  } catch (err) {
-    res.status(500).json({ ok: false, msg: err.message });
+const request = async (path, params = {}) => {
+  const url = new URL(`${BASE_URL}${path}`);
+  url.searchParams.set('language', process.env.TMDB_LANGUAGE || 'es-ES');
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+
+  const headers = { accept: 'application/json' };
+  if (process.env.TMDB_ACCESS_TOKEN) {
+    headers.Authorization = `Bearer ${process.env.TMDB_ACCESS_TOKEN}`;
+  } else {
+    url.searchParams.set('api_key', process.env.TMDB_API_KEY);
   }
-};
 
-const create = async (req, res) => {
-  try {
-    let peliculaData = { ...req.body };
-    const tmdbId = peliculaData.tmdb_id || peliculaData.tmdbId;
-
-    if (tmdbId) {
-      try {
-        const detalleTmdb = await tmdbService.getDetalle(tmdbId);
-        const videosTmdb = await tmdbService.getVideos(tmdbId);
-        
-        const trailerObj = videosTmdb.results?.find(
-          v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
-        );
-        const trailerUrl = trailerObj ? `https://www.youtube.com/watch?v=${trailerObj.key}` : null;
-
-        peliculaData.titulo = peliculaData.titulo || detalleTmdb.title;
-        peliculaData.sinopsis = peliculaData.sinopsis || detalleTmdb.overview;
-        peliculaData.anio = peliculaData.anio || (detalleTmdb.release_date ? new Date(detalleTmdb.release_date).getFullYear() : null);
-        peliculaData.duracion_minutos = peliculaData.duracion_minutos || peliculaData.duracionMinutos || detalleTmdb.runtime;
-        peliculaData.poster_url = peliculaData.poster_url || peliculaData.posterUrl || (detalleTmdb.poster_path ? `https://image.tmdb.org/t/p/w500${detalleTmdb.poster_path}` : null);
-        peliculaData.trailer_url = peliculaData.trailer_url || peliculaData.trailerUrl || trailerUrl;
-      } catch (tmdbErr) {
-        console.warn('No se pudo obtener la info de TMDB automáticamente:', tmdbErr.message);
-      }
+  const response = await fetch(url, { headers });
+    if (!response.ok) {
+    let motivo = '';
+    try {
+      const cuerpo = await response.json();
+      motivo = cuerpo.status_message ? `: ${cuerpo.status_message}` : '';
+    } catch (e) {
+      // la respuesta no traía JSON
     }
-
-    if (!peliculaData.titulo) {
-      return res.status(400).json({ ok: false, msg: 'El título es requerido o el tmdb_id no es válido' });
-    }
-
-    const data = await PeliculaModel.create(peliculaData);
-    res.status(201).json({ ok: true, data });
-  } catch (err) {
-    res.status(500).json({ ok: false, msg: err.message });
+    throw new Error(`TMDB respondió con estado ${response.status}${motivo}`);
   }
+  return response.json();
 };
 
-const getById = async (req, res) => {
-  try {
-    const data = await PeliculaModel.getById(req.params.id);
-    if (!data) return res.status(404).json({ ok: false, msg: 'Película no encontrada' });
-    res.json({ ok: true, data });
-  } catch (err) {
-    res.status(500).json({ ok: false, msg: err.message });
-  }
+const getPopulares = (page = 1) => request('/movie/popular', { page });
+
+const getDetalle = (tmdbId) => request(`/movie/${tmdbId}`);
+
+const getImagenes = (tmdbId) =>
+  request(`/movie/${tmdbId}/images`, { include_image_language: 'es,en,null' });
+
+// Si no hay trailers en español, reintenta en inglés
+const getVideos = async (tmdbId) => {
+  const enEspanol = await request(`/movie/${tmdbId}/videos`);
+  if (enEspanol.results && enEspanol.results.length) return enEspanol;
+  return request(`/movie/${tmdbId}/videos`, { language: 'en-US' });
 };
 
-const update = async (req, res) => {
-  try {
-    const affected = await PeliculaModel.update(req.params.id, req.body);
-    if (!affected) return res.status(404).json({ ok: false, msg: 'Película no encontrada' });
-    const data = await PeliculaModel.getById(req.params.id);
-    res.json({ ok: true, data });
-  } catch (err) {
-    res.status(500).json({ ok: false, msg: err.message });
-  }
-};
+const buscar = (q, page = 1) => request('/search/movie', { query: q, page });
 
-const remove = async (req, res) => {
-  try {
-    const affected = await PeliculaModel.remove(req.params.id);
-    if (!affected) return res.status(404).json({ ok: false, msg: 'Película no encontrada' });
-    res.json({ ok: true, msg: 'Película eliminada' });
-  } catch (err) {
-    res.status(500).json({ ok: false, msg: err.message });
-  }
-};
-
-const getResenas = async (req, res) => {
-  try {
-    const pelicula = await PeliculaModel.getById(req.params.id);
-    if (!pelicula) return res.status(404).json({ ok: false, msg: 'Película no encontrada' });
-    const data = await ResenaModel.getByPelicula(req.params.id);
-    res.json({ ok: true, data });
-  } catch (err) {
-    res.status(500).json({ ok: false, msg: err.message });
-  }
-};
-
-const createResena = async (req, res) => {
-  try {
-    const peliculaId = req.params.id;
-    const pelicula = await PeliculaModel.getById(peliculaId);
-    if (!pelicula) return res.status(404).json({ ok: false, msg: 'Película no encontrada' });
-
-    // Extraemos explícitamente el comentario del cuerpo
-    const { 
-      usuarioId, usuario_id, 
-      criticoId, critico_id, 
-      calificacion, puntuacion, 
-      comentario 
-    } = req.body;
-
-    const finalUsuarioId = usuarioId !== undefined ? usuarioId : usuario_id;
-    const finalCriticoId = criticoId !== undefined ? criticoId : critico_id;
-    const finalCalificacion = calificacion !== undefined ? calificacion : puntuacion;
-
-    if (!finalUsuarioId && !finalCriticoId) {
-      return res.status(400).json({ ok: false, msg: 'Debe indicar usuarioId o criticoId' });
-    }
-
-    if (finalCalificacion === undefined) {
-      return res.status(400).json({ ok: false, msg: 'La calificación es obligatoria' });
-    }
-
-    const data = await ResenaModel.create({
-      peliculaId,
-      usuarioId: finalUsuarioId || null,
-      criticoId: finalCriticoId || null,
-      calificacion: finalCalificacion,
-      comentario: comentario || null
-    });
-
-    res.status(201).json({ ok: true, data });
-  } catch (err) {
-    if (err.errno === 1062) {
-      return res.status(409).json({ ok: false, msg: 'Ya existe una reseña de este usuario o crítico para esta película' });
-    }
-    res.status(500).json({ ok: false, msg: err.message });
-  }
-};
-
-module.exports = { getAll, create, getById, remove, getResenas, createResena, update };
+module.exports = { getPopulares, getDetalle, getImagenes, getVideos, buscar };

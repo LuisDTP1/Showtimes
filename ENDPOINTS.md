@@ -46,6 +46,7 @@ Backend construido en Node.js + Express + MySQL. A continuación se listan los 2
 ## 6. Comentarios (`/api/comentarios`)
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
+| PUT | /api/comentarios/:id | Editar reseña |
 | DELETE | /api/comentarios/:id | Eliminar comentario |
 
 ## 7. Favoritos (`/api/favoritos`)

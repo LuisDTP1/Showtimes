@@ -68,16 +68,19 @@ CREATE TABLE IF NOT EXISTS pelicula_genero (
 CREATE TABLE IF NOT EXISTS resenas (
   id INT AUTO_INCREMENT PRIMARY KEY,
   pelicula_id INT NOT NULL,
+  calificacion TINYINT NOT NULL DEFAULT 1,
   usuario_id INT DEFAULT NULL,
   critico_id INT DEFAULT NULL,
-  calificacion INT NOT NULL,
-  comentario TEXT,
-  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (pelicula_id) REFERENCES peliculas(id) ON DELETE CASCADE,
-  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-  FOREIGN KEY (critico_id) REFERENCES criticos(id) ON DELETE CASCADE
+  comentario TEXT DEFAULT NULL,
+  creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_resena_usuario_pelicula (usuario_id, pelicula_id),
+  UNIQUE KEY uq_resena_critico_pelicula (critico_id, pelicula_id),
+  CONSTRAINT fk_resena_pelicula FOREIGN KEY (pelicula_id) REFERENCES peliculas(id) ON DELETE CASCADE,
+  CONSTRAINT fk_resena_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+  CONSTRAINT fk_resena_critico FOREIGN KEY (critico_id) REFERENCES criticos(id) ON DELETE CASCADE,
+  CONSTRAINT chk_resena_autor CHECK ((usuario_id IS NULL) <> (critico_id IS NULL)),
+  CONSTRAINT chk_calificacion CHECK (calificacion BETWEEN 1 AND 5)
 );
-
 -- ==========================
 -- COMENTARIOS (comentarios sobre una reseña)
 -- ==========================

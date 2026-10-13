@@ -2,16 +2,16 @@
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/peliculas.controller');
+const { verificarToken } = require('../middlewares/auth.middleware');
 
 router.get('/', ctrl.getAll);
-router.post('/', ctrl.create);
+router.post('/', verificarToken, ctrl.create);
 router.get('/:id', ctrl.getById);
-router.put('/:id', ctrl.update);
-router.delete('/:id', ctrl.remove);
+router.put('/:id', verificarToken, ctrl.update);
+router.delete('/:id', verificarToken, ctrl.remove);
 
-// Rutas secundarias integradas (Reseñas y Géneros)
 router.get('/:id/resenas', ctrl.getResenas);
-router.post('/:id/resenas', ctrl.createResena);
-router.post('/:id/generos', ctrl.agregarGeneroAPelicula);
+router.post('/:id/resenas', verificarToken, ctrl.createResena);
+router.post('/:id/generos', verificarToken, ctrl.agregarGeneroAPelicula);
 
 module.exports = router;
